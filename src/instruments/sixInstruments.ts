@@ -8,3 +8,4 @@ export const INSTRUMENTS: Instr[] = [
   { symbol: "BN_CE_3", exchange: "NFO", tradingsymbol: "BANKNIFTY24DEC48400CE", token: 0, lot: 15 },
   { symbol: "BN_PE_3", exchange: "NFO", tradingsymbol: "BANKNIFTY24DEC48400PE", token: 0, lot: 15 }
 ];
+console.log("[sixInstruments] loaded", INSTRUMENTS.length, "instruments");

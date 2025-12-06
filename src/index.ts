@@ -22,7 +22,18 @@
 //we can  search for the instruments with token / name and expiry date
 
 // Prod mode: TV webhook + strategies + ticker via imports
-import "./server/tvWebhook";
+//import "./server/tvWebhook";
+//To run the full webhook + strategies + ticker (live system):
+
+//To reset the session:
+//import "./pnl/session-reset";
+
+//print current P&L report:
+//import "./pnl/pnl-session-report";
+
+//run the whole test harness
+import "./server/tvWebhookTest";
+
 function greet(name: string): string {
   return `Hello, ${name}!`;
 }

@@ -22,6 +22,7 @@ ticker.on("ticks", ticks => {
   ticks.forEach(t => {
     const sym = byToken[t.instrument_token];
     if (sym) latestPrice[sym] = t.last_price;
+        console.log("[sixTicker] tick", sym, t.last_price);
   });
 });
 
