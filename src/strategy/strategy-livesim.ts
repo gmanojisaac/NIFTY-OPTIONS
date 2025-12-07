@@ -28,7 +28,7 @@ export function closeLiveSim(symbol: string) {
   const pos = liveSimPositions[idx];
   const price = getPrice(symbol);
   liveSimPositions.splice(idx, 1);
-  const h = liveSimHistory.findLast(t => t.symbol === symbol && !t.exit && t.side === pos.side);
+  const h = [...liveSimHistory].reverse().find(t => t.symbol === symbol && !t.exit && t.side === pos.side);
   if (h && price) h.exit = price;
   console.log("LIVESIM CLOSE", symbol, opp(pos.side), "at", price);
 }
