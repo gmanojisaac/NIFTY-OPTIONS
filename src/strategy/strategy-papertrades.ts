@@ -1,7 +1,7 @@
 import { Signal, Position, Side } from "../core/types";
 import { latestPrice } from "../ticker/sixTicker";
 import { lot } from "../orders/order-manager";
-import { recordPnL, isLiveEnabled } from "../pnl/pnl-session";
+import { recordPnL, getSessionPnL } from "../pnl/pnl-session";
 
 const paperPos: Position[] = [];
 
@@ -26,7 +26,9 @@ export function handlePaperSignal(s: Signal): PaperDecision {
   if (!pos) {
     paperPos.push({ symbol: s.symbol, side: s.side, qty: lot(s.symbol), entry: price });
     res.opened = true;
-    res.openLive = isLiveEnabled(s.side);
+
+const pnlSide = getSessionPnL()[s.side];
+res.openLive = pnlSide >= 0;   // 👈 promotion condition: PnL >= 0
     return res;
   }
 
@@ -36,6 +38,10 @@ export function handlePaperSignal(s: Signal): PaperDecision {
   paperPos.splice(paperPos.indexOf(pos), 1);
   res.closed = true;
   res.side = pos.side;
-  res.closeLive = enabled;
+  res.closeLive = true;
+  console.log(
+  "[PROMO CLOSE] side =", pos.side,
+  "pnlThisTrade =", pnl
+);
   return res;
 }

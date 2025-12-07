@@ -5,7 +5,7 @@ const apiKey = process.env.KITE_API_KEY!;
 const accessToken = process.env.KITE_ACCESS_TOKEN!;
 
 const ticker = new KiteTicker({ api_key: apiKey, access_token: accessToken });
-
+console.log("ticker", ticker)
 ticker.connect();
 
 ticker.on("ticks", (ticks) => {

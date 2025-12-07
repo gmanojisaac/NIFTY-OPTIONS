@@ -1,6 +1,6 @@
 export type Instr = {
   symbol: string;
-  exchange: "NFO" | "NSE";
+  exchange: "NFO" | "BFO";
   tradingsymbol: string;
   token: number;
   lot: number;

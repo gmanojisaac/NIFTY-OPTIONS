@@ -1,6 +1,8 @@
+//After 9 AM
+//https://kite.zerodha.com/connect/login?v=3&api_key=k8jfisczsz5bsbff 
 //import "./auth/auth";
 //import "./profile/profile";
-//https://kite.zerodha.com/connect/login?v=3&api_key=k8jfisczsz5bsbff 
+
 //use this link to create the request token and save it in the .env file
 //KITE_REQUEST_TOKEN=
 //KITE_API_SECRET=
@@ -8,7 +10,10 @@
 //KITE_ACCESS_TOKEN= is generated and saved in the .env file
 
 
-//import "./ticker/ticker";
+//convert to token list - everyday
+//import "./tools/resolveTokens";
+//example instrument token
+//import "./ticker/ticker"; 
 //import "./ticker/testTicks"; 
 //import "./ticker/ltpTicker";
 //import "./ticker/fullTicker";
@@ -39,7 +44,7 @@ function greet(name: string): string {
 }
 
 async function main() {
-  console.log(greet("World"));
+  //console.log(greet("World"));
 }
 
 main().catch((err) => {
