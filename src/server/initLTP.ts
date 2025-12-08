@@ -1,3 +1,4 @@
+// src/instruments/initLTP.ts
 import "dotenv/config";
 import { kc } from "../auth/kite";
 import { INSTRUMENTS } from "../instruments/sixInstruments";
@@ -10,18 +11,28 @@ export async function initLTP() {
     return;
   }
 
-  kc.setAccessToken(accessToken);
+  try {
+    kc.setAccessToken(accessToken);
 
-  const keys = INSTRUMENTS.map(i => `${i.exchange}:${i.tradingsymbol}`);
-  const ltpMap = await kc.getLTP(keys);
+    const keys = INSTRUMENTS.map(i => `${i.exchange}:${i.tradingsymbol}`);
+    console.log("[initLTP] Requesting LTP for keys:", keys);
 
-  INSTRUMENTS.forEach(i => {
-    const key = `${i.exchange}:${i.tradingsymbol}`;
-    const data = ltpMap[key];
-    if (data) {
-      setPrice(i.symbol, data.last_price);
-    }
-  });
+    const ltpMap = await kc.getLTP(keys);
 
-  console.log("[initLTP] Loaded LTP for", INSTRUMENTS.length, "symbols");
+    INSTRUMENTS.forEach(i => {
+      const key = `${i.exchange}:${i.tradingsymbol}`;
+      const data = ltpMap[key];
+      if (!data) {
+        console.log("[initLTP] No LTP data for", key);
+        return;
+      }
+      const ltp = data.last_price;
+      setPrice(i.symbol, ltp); // 👈 IMPORTANT: same key used by manual UI
+      console.log("[initLTP] Set", i.symbol, "=", ltp);
+    });
+
+    console.log("[initLTP] Loaded LTP for", INSTRUMENTS.length, "symbols");
+  } catch (err) {
+    console.error("[initLTP] Error fetching LTP:", err);
+  }
 }

@@ -1,28 +1,32 @@
-import "dotenv/config";
-import { Side } from "../core/types";
+// src/pnl-session.ts
 
-const sessionPnL: Record<Side, number> = { BUY: 0, SELL: 0 };
-const baseline: Record<Side, number> = {
-  BUY: Number(process.env.BASELINE_BUY || 0),
-  SELL: Number(process.env.BASELINE_SELL || 0)
+// ----------------------------
+// LOCAL DEBUG FLAG ONLY HERE
+// ----------------------------
+const DEBUG = false;
+const dlog = (...args: any[]) => {
+  if (DEBUG) console.log(...args);
 };
-const liveEnabled: Record<Side, boolean> = { BUY: false, SELL: false };
 
-export function recordPnL(side: Side, pnl: number) {
-  sessionPnL[side] += pnl;
-  if (!liveEnabled[side] && sessionPnL[side] > baseline[side]) liveEnabled[side] = true;
-  return liveEnabled[side];
+interface SessionPnl {
+  BUY: number;
+  SELL: number;
 }
 
-export function isLiveEnabled(side: Side) {
-  return liveEnabled[side];
+let session: SessionPnl = { BUY: 0, SELL: 0 };
+
+export function recordPnL(side: "BUY" | "SELL", pnl: number) {
+  dlog("[PNL] recordPnL side =", side, "pnl =", pnl);
+  session[side] += pnl;
+  dlog("[PNL] updated session =", session);
 }
 
 export function getSessionPnL() {
-  return { ...sessionPnL };
+  dlog("[PNL] getSessionPnL =", session);
+  return session;
 }
 
-export function resetSession() {
-  sessionPnL.BUY = sessionPnL.SELL = 0;
-  liveEnabled.BUY = liveEnabled.SELL = false;
+export function resetSessionPnL() {
+  dlog("[PNL] resetSessionPnL");
+  session = { BUY: 0, SELL: 0 };
 }

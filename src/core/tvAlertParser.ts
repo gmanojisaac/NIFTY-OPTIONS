@@ -1,33 +1,32 @@
-import { Signal } from "./types";
+// src/core/tvAlertParser.ts
+import type { TvSignal, Intent } from "../strategy/paperIntegration";
 
-export function parseTvAlert(body: any): Signal | null {
-  // 1) Get the text from body
-  let text: string | undefined;
+export function parseTvAlert(body: string): TvSignal | null {
+  if (!body || typeof body !== "string") return null;
 
-  if (typeof body === "string") {
-    text = body;
-  } else if (body && typeof body.message === "string") {
-    text = body.message;
-  } else if (body && typeof body.alert === "string") {
-    text = body.alert;
-  } else if (body && typeof body.text === "string") {
-    text = body.text;
+  const text = body.trim();
+
+  let intent: Intent | null = null;
+  if (text.includes("Accepted Entry")) {
+    intent = "ENTRY";
+  } else if (text.includes("Accepted Exit")) {
+    intent = "EXIT";
+  } else {
+    return null;
   }
 
-  if (!text) return null;
+  // stopPx=100
+  const stopMatch = text.match(/stopPx=(\d+(\.\d+)?)/);
+  const stopPx = stopMatch ? Number(stopMatch[1]) : undefined;
 
-  // 2) Check Entry / Exit
-  const isEntry = text.includes("Accepted Entry");
-  const isExit = text.includes("Accepted Exit");
-  if (!isEntry && !isExit) return null;
-
-  // 3) Extract symbol from "sym=..."
-  const symMatch = text.match(/sym=([A-Z0-9]+)/);
+  // sym=NIFTY251209C26200
+  const symMatch = text.match(/sym=([A-Z0-9]+)/i);
   if (!symMatch) return null;
+
   const symbol = symMatch[1];
 
-  // 4) Map to side
-  const side: "BUY" | "SELL" = isEntry ? "BUY" : "SELL";
+  // for now, side is always BUY on these alerts (you can extend later)
+  const side: "BUY" | "SELL" = "BUY";
 
-  return { symbol, side };
+  return { symbol, side, intent, stopPx };
 }

@@ -11,7 +11,7 @@ export const liveSimHistory: {
   exit?: number;
 }[] = [];
 
-const DEBUG = false;
+const DEBUG = true;
 
 export function openLiveSim(s: Signal) {
   const price = getPrice(s.symbol);

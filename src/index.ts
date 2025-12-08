@@ -37,7 +37,21 @@
 //import "./pnl/pnl-session-report";
 
 //run the whole test harness
-import "./server/tvWebhookTest";
+import "./server/tvWebhookTest";  // starts server + ticker
+import "./server/dashboard";      // attaches dashboard routes
+import "./server/manualPrices";   // optional
+
+import { startManualPriceServer } from "./server/manualPrices";
+import { initLTP } from "./instruments/initLTP";  // 👈 ADD THIS
+import "./ticker/liveTicker";    
+import { subscribePriceListener } from "./core/priceStore";
+import { handlePaperTick } from "./strategy/paperIntegration";
+
+subscribePriceListener((symbol, price) => {
+  // You can log if you want:
+  // console.log("[PAPER_TICK] symbol", symbol, "price", price);
+  handlePaperTick(symbol);
+});
 
 function greet(name: string): string {
   return `Hello, ${name}!`;
@@ -45,6 +59,8 @@ function greet(name: string): string {
 
 async function main() {
   //console.log(greet("World"));
+  initLTP();
+  startManualPriceServer(4000);
 }
 
 main().catch((err) => {

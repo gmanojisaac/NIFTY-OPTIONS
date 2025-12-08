@@ -3,9 +3,96 @@ import { getPrice } from "../core/priceStore";
 import { handlePaperOpen } from "./paper-open";
 import { handlePaperClose } from "./paper-close";
 import { PaperDecision } from "./paper-types";
+import { recordPnL } from "../pnl/pnl-session";
 
 const DEBUG = true;
 const paperPos: Position[] = [];
+type PaperSide = "BUY" | "SELL";
+
+interface PaperPosition {
+  symbol: string;
+  side: PaperSide;
+  qty: number;
+  entry: number;
+}
+
+const paperPositions: PaperPosition[] = [];
+export function getPaperPositions(): PaperPosition[] {
+  console.log("[PAPER_POS] getPaperPositions called, returning", paperPositions);
+  return paperPositions;
+}
+
+export function applyPaperTrade(trade: {
+  symbol: string;
+  side: PaperSide;
+  qty: number;
+  price: number;
+}) {
+  console.log("[PAPER_POS] applyPaperTrade input =", trade);
+  console.log("[PAPER_POS] before update =", paperPositions);
+
+  const existingIndex = paperPositions.findIndex(
+    (p) => p.symbol === trade.symbol && p.side === "BUY"
+  );
+  const existing = existingIndex >= 0 ? paperPositions[existingIndex] : undefined;
+
+  if (trade.side === "BUY") {
+    // Open / scale-in long position
+    if (!existing) {
+      paperPositions.push({
+        symbol: trade.symbol,
+        side: "BUY",
+        qty: trade.qty,
+        entry: trade.price,
+      });
+    } else {
+      const totalQty = existing.qty + trade.qty;
+      if (totalQty <= 0) {
+        // Should not happen, but guard anyway
+        paperPositions.splice(existingIndex, 1);
+      } else {
+        const newEntry =
+          (existing.entry * existing.qty + trade.price * trade.qty) / totalQty;
+        existing.qty = totalQty;
+        existing.entry = newEntry;
+      }
+    }
+  } else if (trade.side === "SELL") {
+    // Close (part of) an existing long position and record realized PnL
+    if (!existing) {
+      console.log(
+        "[PAPER_POS] SELL received but no existing BUY position for",
+        trade.symbol
+      );
+    } else {
+      const closeQty = Math.min(trade.qty, existing.qty);
+      const realized = (trade.price - existing.entry) * closeQty;
+
+      console.log(
+        "[PAPER_POS] realized PnL for",
+        trade.symbol,
+        "qty",
+        closeQty,
+        "entry",
+        existing.entry,
+        "exit",
+        trade.price,
+        "pnl",
+        realized
+      );
+      // Closing a BUY position -> record PnL under BUY
+      recordPnL("BUY", realized);
+
+      existing.qty -= closeQty;
+      if (existing.qty <= 0) {
+        paperPositions.splice(existingIndex, 1);
+      }
+    }
+  }
+
+  console.log("[PAPER_POS] after update =", paperPositions);
+}
+
 
 export function handlePaperTestSignal(s: Signal): PaperDecision {
   const price = getPrice(s.symbol);
@@ -31,3 +118,5 @@ export function handlePaperTestSignal(s: Signal): PaperDecision {
     return handlePaperClose(pos, price, paperPos);
   }
 }
+
+
