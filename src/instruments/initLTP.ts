@@ -9,7 +9,7 @@ import { setLivePrice } from "../core/priceStore";
 // Turn ON logs:  const DEBUG = true;
 // Turn OFF logs: const DEBUG = false;
 // --------------------------------------------
-const DEBUG = false;
+const DEBUG = true;
 
 function log(...args: any[]) {
   if (DEBUG) console.log(...args);

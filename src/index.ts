@@ -40,11 +40,11 @@
 
 //run the whole test harness
 import "./server/tvWebhookTest";  // starts server + ticker
-//import "./server/dashboard";      // attaches dashboard routes
+import "./server/dashboard";      // remove after 9 am 
 import "./server/manualPrices";   // optional
-import "./ticker/kiteTickerLive";
+//import "./ticker/kiteTickerLive";// add it after 9 am 
 
- import "./server/dashboardMain";
+//import "./server/dashboardMain";
 // import "./server/dashboardCurrent";
 // import "./server/dashboardLtp";
 // import "./server/dashboardPaperPositions";
@@ -54,7 +54,7 @@ import "./ticker/kiteTickerLive";
 // import "./server/dashboardLiveSimDebug";
 // import "./server/dashboardAfterMarket";
 import { startManualPriceServer } from "./server/manualPrices";
-//import { initLTP } from "./instruments/initLTP";
+import { initLTP } from "./instruments/initLTP";
 
 import { subscribePriceListener } from "./core/priceStore";
 import { handlePaperTick } from "./strategy/paperIntegration";
@@ -87,7 +87,7 @@ async function main() {
   log("NODE_ENV:", process.env.NODE_ENV || "undefined");
 
   log("Calling initLTP() to initialise LTP data");
-  //initLTP();
+  initLTP();
   log("initLTP() call finished (check initLTP logs for details)");
 
   const port = 4000;
