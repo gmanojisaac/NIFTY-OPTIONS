@@ -9,6 +9,7 @@ app.use(express.json());
 app.post("/tv", async (req, res) => {
   const { symbol, action } = req.body as { symbol: string; action: "BUY" | "SELL" };
   const signal: Signal = { symbol, side: action };
+  console.log("MANOJ", signal);
   const paper = handlePaperSignal(signal);
 
   if (paper.opened && paper.openLive) await openLiveTrade(signal);

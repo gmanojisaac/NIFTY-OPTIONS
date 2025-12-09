@@ -65,21 +65,21 @@ if (!apiKey || !accessToken) {
   });
 
   ticker.on("error", (err) => {
-    console.error("[TICKER] ❌ error:", err);
+    //console.error("[TICKER] ❌ error:", err);
   });
 
   ticker.on("close", () => {
-    console.log("[TICKER] ⚠ closed");
+    //console.log("[TICKER] ⚠ closed");
   });
 
   ticker.on("noreconnect", () => {
-    console.log("[TICKER] ⚠ will not reconnect");
+    //console.log("[TICKER] ⚠ will not reconnect");
   });
 
   ticker.on("reconnect", (reconnectCount, delay) => {
-    console.log("[TICKER] 🔁 reconnect attempt", reconnectCount, "in", delay, "ms");
+    //console.log("[TICKER] 🔁 reconnect attempt", reconnectCount, "in", delay, "ms");
   });
 
   console.log("[TICKER] Calling connect()...");
-  ticker.connect();
+  //ticker.connect();
 }

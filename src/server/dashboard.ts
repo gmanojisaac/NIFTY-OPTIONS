@@ -6,6 +6,9 @@ import { getSessionPnL } from "../pnl/pnl-session";
 import { getPaperPositions } from "../strategy/strategy-papertrades-test";
 import { liveSimPositions, liveSimHistory } from "../strategy/strategy-livesim";
 import { getPaperDebugState } from "../strategy/paperIntegration";
+import { getPaperTradeHistory } from "../strategy/strategy-papertrades-test";
+import { getSignalHistory } from "../core/signalHistory";
+
 
 // JSON state endpoint for the dashboard
 app.get("/dashboard/state", (_req, res) => {
@@ -60,7 +63,9 @@ app.get("/dashboard/state", (_req, res) => {
   //   paperPositionsCount: paperPositions.length,
   //   livePositionsCount: liveSimPositions.length,
   // });
-
+  // NEW:
+  const paperTrades = getPaperTradeHistory();
+  const signals = getSignalHistory();
   res.json({
     pnl,
     pnlRealized: realized,
@@ -68,6 +73,8 @@ app.get("/dashboard/state", (_req, res) => {
     paperPositions,
     livePositions: liveSimPositions,
     liveHistory: liveSimHistory,
+    paperTrades,                     // NEW
+    signals,                         // NEW
     paperDebug,
   });
 });
@@ -122,6 +129,22 @@ app.get("/dashboard", (_req, res) => {
     <section class="card">
       <h2>Livesim Positions</h2>
       <div id="live"></div>
+      <section class="card">
+    <h2>Paper Trades History</h2>
+    <div id="paper-trades"></div>
+  </section>
+
+  <section class="card">
+    <h2>Livesim History</h2>
+    <div id="live-history"></div>
+  </section>
+
+  <section class="card">
+    <h2>Signals History</h2>
+    <div id="signals"></div>
+  </section>
+</main>
+
     </section>
     <section class="card" style="grid-column:1 / span 2;">
       <h2>Paper Debug (Thresholds & Flags)</h2>
@@ -138,6 +161,22 @@ app.get("/dashboard", (_req, res) => {
     </section>
   </main>
   <script>
+    function formatIST(isoString) {
+    if (!isoString) return "";
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return isoString; // fallback
+
+    return d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+  }
 async function loadState() {
   try {
     console.log("[DASHBOARD][BROWSER] calling /dashboard/state");
@@ -149,6 +188,9 @@ async function loadState() {
     renderPnL(data.pnl);
     renderPositions('paper', data.paperPositions);
     renderPositions('live', data.livePositions);
+    renderPaperTrades(data.paperTrades);        // NEW
+    renderLiveHistory(data.liveHistory);        // NEW
+    renderSignals(data.signals);                // NEW
     renderPaperDebug(data.paperDebug);
   } catch (err) {
     console.error("[DASHBOARD][BROWSER] loadState error", err);
@@ -192,6 +234,80 @@ function renderPositions(id, pos){
     '<div class="tag '+(p.side==="BUY"?"pos-buy":"pos-sell")+'">'+p.side+
     '</div></div><div class="mono">'+p.qty+' @ '+p.entry+
     '</div></div>'
+  ).join('');
+}
+function renderPaperTrades(trades){
+  const el = document.getElementById('paper-trades');
+  if (!trades || trades.length === 0){
+    el.innerHTML = '<div class="row"><div>No trades yet</div></div>';
+    return;
+  }
+  // latest first
+  const sorted = [...trades].sort((a,b) => a.ts < b.ts ? 1 : -1);
+  el.innerHTML = sorted.map(t =>
+    '<div class="row mono">' +
+      '<div style="flex:1;">'+t.symbol+'</div>' +
+      '<div style="width:70px;" class="tag '+(t.side==="BUY"?"pos-buy":"pos-sell")+'">'+t.side+'</div>' +
+      '<div style="width:80px;">'+t.qty+'</div>' +
+      '<div style="width:80px;">'+t.price+'</div>' +
+      '<div style="width:180px;">'+formatIST(t.ts)+'</div>' +
+    '</div>'
+  ).join('');
+}
+
+function renderLiveHistory(list) {
+  const el = document.getElementById('live-history');
+  if (!list || list.length === 0) {
+    el.innerHTML = '<div class="row"><div>No history</div></div>';
+    return;
+  }
+
+  const rows = [];
+
+  list.forEach(t => {
+    // OPEN row
+    rows.push(
+      '<div class="row mono">' +
+        '<div style="flex:1;">'+t.symbol+'</div>' +
+        '<div style="width:70px;" class="tag pos-buy">BUY</div>' +
+        '<div style="width:80px;">'+t.qty+'</div>' +
+        '<div style="width:80px;">'+t.entry+'</div>' +
+        '<div style="width:80px;">OPEN</div>' +
+      '</div>'
+    );
+
+    // CLOSE row (if exited)
+    if (t.exit !== undefined) {
+      rows.push(
+        '<div class="row mono">' +
+          '<div style="flex:1;">'+t.symbol+'</div>' +
+          '<div style="width:70px;" class="tag pos-sell">SELL</div>' +
+          '<div style="width:80px;">'+t.qty+'</div>' +
+          '<div style="width:80px;">'+t.exit+'</div>' +
+          '<div style="width:80px;">CLOSE</div>' +
+        '</div>'
+      );
+    }
+  });
+
+  el.innerHTML = rows.join('');
+}
+
+
+function renderSignals(list){
+  const el = document.getElementById('signals');
+  if (!list || list.length === 0){
+    el.innerHTML = '<div class="row"><div>No signals</div></div>';
+    return;
+  }
+  const sorted = [...list].sort((a,b) => a.ts < b.ts ? 1 : -1);
+  el.innerHTML = sorted.map(s =>
+    '<div class="row mono">' +
+      '<div style="width:180px;">'+formatIST(s.ts)+'</div>' +
+      '<div style="width:100px;">'+s.source+'</div>' +
+      '<div style="flex:1;">'+s.signal.symbol+'</div>' +
+      '<div style="width:70px;" class="tag '+(s.signal.side==="BUY"?"pos-buy":"pos-sell")+'">'+s.signal.side+'</div>' +
+    '</div>'
   ).join('');
 }
 

@@ -1,6 +1,9 @@
+// src/strategy/strategy-livesim.ts
 import { Signal, Position } from "../core/types";
 import { getPrice } from "../core/priceStore";
-import { computeQty } from "./paper-utils";
+// ❌ we won't use computeQty here anymore
+// import { computeQty } from "./paper-utils";
+import { getPaperPosition } from "./strategy-papertrades-test";
 
 export const liveSimPositions: Position[] = [];
 export const liveSimHistory: {
@@ -11,24 +14,35 @@ export const liveSimHistory: {
   exit?: number;
 }[] = [];
 
-const DEBUG = true;
+const DEBUG = false;
 
+// KEEP the same signature
 export function openLiveSim(s: Signal) {
-  const price = getPrice(s.symbol);
-  if (!price) {
-    if (DEBUG) console.log("[LIVESIM][DEBUG] price undefined for", s.symbol);
+  // Look up the paper position that was just opened
+  const paperPos = getPaperPosition(s.symbol);
+
+  if (!paperPos || paperPos.qty <= 0) {
+    if (DEBUG) {
+      console.log(
+        "[LIVESIM][DEBUG] openLiveSim: no paper position found for",
+        s.symbol,
+        "→ skipping livesim open"
+      );
+    }
     return;
   }
 
-  // Use same qty as paper trade
-  const { qty } = computeQty(s.symbol, price);
+  const qty = paperPos.qty;
+  const entryPrice = paperPos.entry; // keep entry aligned with paper
 
   if (DEBUG) {
     console.log("--------------------------------------------------");
     console.log("[LIVESIM][DEBUG] OPEN SIGNAL =", s);
-    console.log("[LIVESIM][DEBUG] price =", price);
-    console.log("[LIVESIM][DEBUG] qty =", qty);
-    console.log("[LIVESIM][DEBUG] liveSimPositions BEFORE =", JSON.stringify(liveSimPositions));
+    console.log("[LIVESIM][DEBUG] using paperPos =", paperPos);
+    console.log(
+      "[LIVESIM][DEBUG] liveSimPositions BEFORE =",
+      JSON.stringify(liveSimPositions)
+    );
   }
 
   // Add to active positions
@@ -36,7 +50,7 @@ export function openLiveSim(s: Signal) {
     symbol: s.symbol,
     side: s.side,
     qty,
-    entry: price
+    entry: entryPrice,
   });
 
   // Add to history
@@ -44,29 +58,42 @@ export function openLiveSim(s: Signal) {
     symbol: s.symbol,
     side: s.side,
     qty,
-    entry: price
+    entry: entryPrice,
   });
 
-  console.log("[LIVESIM OPEN]", s.symbol, s.side, qty, "at", price);
+  console.log("[LIVESIM OPEN]", s.symbol, s.side, qty, "at", entryPrice);
 
   if (DEBUG) {
-    console.log("[LIVESIM][DEBUG] liveSimPositions AFTER =", JSON.stringify(liveSimPositions));
-    console.log("[LIVESIM][DEBUG] liveSimHistory =", JSON.stringify(liveSimHistory));
+    console.log(
+      "[LIVESIM][DEBUG] liveSimPositions AFTER =",
+      JSON.stringify(liveSimPositions)
+    );
+    console.log(
+      "[LIVESIM][DEBUG] liveSimHistory =",
+      JSON.stringify(liveSimHistory)
+    );
     console.log("--------------------------------------------------");
   }
 }
 
 export function closeLiveSim(symbol: string) {
-  const idx = liveSimPositions.findIndex(p => p.symbol === symbol);
+  const idx = liveSimPositions.findIndex((p) => p.symbol === symbol);
 
   if (DEBUG) {
     console.log("--------------------------------------------------");
     console.log("[LIVESIM][DEBUG] CLOSE SIGNAL for", symbol);
-    console.log("[LIVESIM][DEBUG] liveSimPositions BEFORE =", JSON.stringify(liveSimPositions));
+    console.log(
+      "[LIVESIM][DEBUG] liveSimPositions BEFORE =",
+      JSON.stringify(liveSimPositions)
+    );
   }
 
   if (idx < 0) {
-    if (DEBUG) console.log("[LIVESIM][DEBUG] No active livesim position to close for", symbol);
+    if (DEBUG)
+      console.log(
+        "[LIVESIM][DEBUG] No active livesim position to close for",
+        symbol
+      );
     return;
   }
 
@@ -74,7 +101,8 @@ export function closeLiveSim(symbol: string) {
   const price = getPrice(symbol);
 
   if (!price) {
-    if (DEBUG) console.log("[LIVESIM][DEBUG] price undefined for CLOSE", symbol);
+    if (DEBUG)
+      console.log("[LIVESIM][DEBUG] price undefined for CLOSE", symbol);
     return;
   }
 
@@ -85,7 +113,7 @@ export function closeLiveSim(symbol: string) {
   const h = liveSimHistory
     .slice()
     .reverse()
-    .find(t => t.symbol === symbol && t.exit === undefined);
+    .find((t) => t.symbol === symbol && t.exit === undefined);
 
   if (h) h.exit = price;
 
@@ -93,8 +121,14 @@ export function closeLiveSim(symbol: string) {
 
   if (DEBUG) {
     console.log("[LIVESIM][DEBUG] Updated exit for history =", h);
-    console.log("[LIVESIM][DEBUG] liveSimPositions AFTER =", JSON.stringify(liveSimPositions));
-    console.log("[LIVESIM][DEBUG] liveSimHistory =", JSON.stringify(liveSimHistory));
+    console.log(
+      "[LIVESIM][DEBUG] liveSimPositions AFTER =",
+      JSON.stringify(liveSimPositions)
+    );
+    console.log(
+      "[LIVESIM][DEBUG] liveSimHistory =",
+      JSON.stringify(liveSimHistory)
+    );
     console.log("--------------------------------------------------");
   }
 }

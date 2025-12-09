@@ -1,5 +1,6 @@
 //After 9 AM
 //https://kite.zerodha.com/connect/login?v=3&api_key=k8jfisczsz5bsbff 
+//npx ts-node ./src/auth/auth.ts
 //import "./auth/auth";
 //import "./profile/profile";
 
@@ -42,14 +43,25 @@ import "./server/dashboard";      // attaches dashboard routes
 import "./server/manualPrices";   // optional
 
 import { startManualPriceServer } from "./server/manualPrices";
-import { initLTP } from "./instruments/initLTP";  // 👈 ADD THIS
-import "./ticker/liveTicker";    
+import { initLTP } from "./instruments/initLTP";
+import "./ticker/liveTicker";
 import { subscribePriceListener } from "./core/priceStore";
 import { handlePaperTick } from "./strategy/paperIntegration";
 
+// Simple logger for this entry file
+const log = (...args: unknown[]) => {
+  const ts = new Date().toISOString();
+  //console.log(ts, "[INDEX]", ...args);
+};
+
+// Set this to true (or via env) if tick-level logging is too noisy
+const DEBUG_TICKS = false; // or: process.env.DEBUG_TICKS === "1";
+
 subscribePriceListener((symbol, price) => {
-  // You can log if you want:
-  // console.log("[PAPER_TICK] symbol", symbol, "price", price);
+  if (DEBUG_TICKS) {
+    log("PRICE_TICK", { symbol, price });
+  }
+  log("Dispatching tick to paperIntegration", { symbol });
   handlePaperTick(symbol);
 });
 
@@ -58,11 +70,27 @@ function greet(name: string): string {
 }
 
 async function main() {
-  //console.log(greet("World"));
+  log("Application starting…");
+
+  // log the environment mode if needed
+  log("NODE_ENV:", process.env.NODE_ENV || "undefined");
+
+  log("Calling initLTP() to initialise LTP data");
   initLTP();
-  startManualPriceServer(4000);
+  log("initLTP() call finished (check initLTP logs for details)");
+
+  const port = 4000;
+  log("Starting manual price server", { port });
+  startManualPriceServer(port);
+  log("Manual price server started", { port });
+
+  // Optional: sanity check greeting
+  // log(greet("World"));
 }
 
 main().catch((err) => {
-  console.error("❌ Unexpected error:", err);
+  console.error("❌ Unexpected error in main:", err);
+  if (err && (err as any).stack) {
+    console.error("Stack:", (err as any).stack);
+  }
 });

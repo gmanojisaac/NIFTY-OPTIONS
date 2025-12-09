@@ -8,118 +8,159 @@ import {
   isSpecialCondition,
 } from "./paperTypes";
 
+// ---- Debug flag & helper ----
+const DEBUG = true; // ← switch true/false as needed
+
+function dbg(...args: any[]) {
+  if (DEBUG) console.log("[paperEngine]", ...args);
+}
+
 export function stepPaper(
   state: PaperState,
   event: Event
 ): { state: PaperState; effect: Effect } {
+  dbg("EVENT RECEIVED:", event);
+  dbg("STATE BEFORE:", state);
+
   const next: PaperState = { ...state };
   let effect: Effect = { type: "NONE" };
   const key = minuteKey(event.time);
 
-  // ───────────── BUY_SIGNAL column ─────────────
+  // ───────────── BUY_SIGNAL ─────────────
   if (event.type === "BUY_SIGNAL") {
+    dbg("Handling BUY_SIGNAL");
+
     if (state.pos === "NO_POSITION") {
-      // BUY side (flat → long) setup
+      dbg("Arming BUY threshold at", event.stopPx);
+
       next.buyThreshold = event.stopPx;
       next.lastBuyThreshold = event.stopPx;
-      next.checkThreshold = event.stopPx; // entry threshold
+      next.checkThreshold = event.stopPx;
       next.sellCountAfterLastBuy = 0;
-      // pos stays NO_POSITION, effect stays NONE
+
+      dbg("Updated state after BUY_SIGNAL:", next);
+    } else {
+      dbg("Ignoring BUY_SIGNAL because pos =", state.pos);
     }
-    // If already LONG, ignore or extend if you like
+
     return { state: next, effect };
   }
 
-  // ───────────── SELL_SIGNAL column ─────────────
+  // ───────────── SELL_SIGNAL ─────────────
   if (event.type === "SELL_SIGNAL") {
+    dbg("Handling SELL_SIGNAL");
+
     const stopPx = event.stopPx;
-
-    // Always remember SELL stop for debug / logic
     next.sellThreshold = stopPx;
-    next.checkThreshold = stopPx; // IMPORTANT: reset to SELL stopPx (do not clear)
+    next.checkThreshold = stopPx;
 
-    // Count SELL only if we've had a BUY before
+    dbg("Updated SELL threshold:", stopPx);
+
     if (state.lastBuyThreshold !== undefined) {
       next.sellCountAfterLastBuy = state.sellCountAfterLastBuy + 1;
+      dbg("Increment sellCountAfterLastBuy →", next.sellCountAfterLastBuy);
     }
 
-    // If currently LONG → exit immediately
     if (state.pos === "LONG") {
+      dbg("EXIT triggered from LONG @ stopPx", stopPx);
+
       next.pos = "NO_POSITION";
       next.blockedMinute = key;
 
-      const priceForExit = stopPx; // or use event.ltp if you prefer
-      effect = { type: "EXECUTE_SELL_TRADE", price: priceForExit };
+      effect = { type: "EXECUTE_SELL_TRADE", price: stopPx };
+
+      dbg("EXIT effect:", effect);
+      dbg("STATE AFTER EXIT:", next);
 
       return { state: next, effect };
     }
 
-    // If flat, just store thresholds / counts
+    dbg("SELL_SIGNAL received while flat. Thresholds updated only.");
     return { state: next, effect };
   }
 
-  // ───────────── CONDN_CHECK column ─────────────
+  // ───────────── CONDN_CHECK ─────────────
+  dbg("Handling CONDN_CHECK");
+
   if (state.blockedMinute && state.blockedMinute === key) {
-    // idle in same minute (A/B behaviour)
+    dbg("Minute is blocked:", key, "→ no action this tick");
     return { state: next, effect };
   }
 
-  const ltp = event.ltp ?? 0; // ltp should be set for CONDN_CHECK
+  const ltp = event.ltp ?? 0;
+  dbg("LTP:", ltp);
 
-  // ----- NO POSITION row -----
+  // ───────────── NO_POSITION logic ─────────────
   if (state.pos === "NO_POSITION") {
-    // TRUE column: special condition (if you use it)
-    if (isSpecialCondition(state, ltp)) {
-      if (state.lastBuyThreshold !== undefined) {
-        next.checkThreshold = state.lastBuyThreshold; // e.g., "checkThreshold = BUY_Threshold"
-      }
-      return { state: next, effect }; // remain NO_POSITION, first tick after special condition
-    }
+    dbg("Position: NO_POSITION");
 
-    // Normal entry logic
-    if (state.checkThreshold === undefined) {
-      // No buy level armed → nothing to do
+    if (isSpecialCondition(state, ltp)) {
+      dbg("Special condition TRUE");
+
+      if (state.lastBuyThreshold !== undefined) {
+        next.checkThreshold = state.lastBuyThreshold;
+        dbg("Reset checkThreshold →", next.checkThreshold);
+      }
+
       return { state: next, effect };
     }
 
-    // BUY side (A): entry condition
+    if (state.checkThreshold === undefined) {
+      dbg("No active BUY threshold. Staying flat.");
+      return { state: next, effect };
+    }
+
+    dbg("Check BUY entry: LTP", ltp, ">= threshold", state.checkThreshold);
+
     if (ltp >= state.checkThreshold) {
-      // Execute BUY trade, move to LONG
+      dbg("BUY condition met → entering LONG");
+
       next.pos = "LONG";
       effect = { type: "EXECUTE_BUY_TRADE", price: ltp };
-      // NOTE: do NOT set blockedMinute here, since pos is no longer NO_POSITION
+
+      dbg("BUY effect:", effect);
+      dbg("STATE AFTER BUY:", next);
+
       return { state: next, effect };
     }
 
-    // ltp < checkThreshold → remain flat, block this minute
+    dbg("LTP < threshold → blocking minute:", key);
     next.blockedMinute = key;
+
     return { state: next, effect };
   }
 
-  // ----- POSITION row (LONG) -----
+  // ───────────── LONG logic ─────────────
   if (state.pos === "LONG") {
+    dbg("Position: LONG. Exit threshold =", state.checkThreshold);
+
     if (state.checkThreshold === undefined) {
-      // No exit level defined -> just hold
+      dbg("NO exit threshold → holding.");
       return { state: next, effect };
     }
 
-    // HOLD side: every tick check ltp < threshold
+    dbg("Check EXIT: LTP", ltp, "< threshold", state.checkThreshold);
+
     if (ltp < state.checkThreshold) {
-      // Exit condition: price fell below exit threshold
+      dbg("EXIT triggered @", ltp);
+
       next.pos = "NO_POSITION";
       next.blockedMinute = key;
+
       effect = { type: "EXECUTE_SELL_TRADE", price: ltp };
-      // Here you should also accumulate realized PnL outside, using this effect
+
+      dbg("SELL effect:", effect);
+      dbg("STATE AFTER EXIT:", next);
+
       return { state: next, effect };
     }
 
-    // ltp >= checkThreshold → hold position
+    dbg("LTP above threshold → holding LONG");
     return { state: next, effect };
   }
 
-  // In case more pos states are added in future
+  dbg("Unknown position state. Returning state unchanged.");
   return { state: next, effect };
 }
 
-// Optionally re-export initial state for convenience
 export { initialPaperState };

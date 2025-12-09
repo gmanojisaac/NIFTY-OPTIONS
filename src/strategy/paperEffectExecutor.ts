@@ -1,7 +1,7 @@
 // src/strategy/paperEffectExecutor.ts
 import { Effect } from "./paperTypes";
 import { computeQty } from "./paper-utils";
-import { applyPaperTrade } from "./strategy-papertrades-test";
+import { applyPaperTrade, getPaperPosition } from "./strategy-papertrades-test";
 import { openLiveSim, closeLiveSim } from "./strategy-livesim";
 import { Signal } from "../core/types";
 
@@ -54,34 +54,44 @@ export function executePaperEffect(symbol: string, effect: Effect): void {
       return;
     }
 
-    case "EXECUTE_SELL_TRADE": {
-      const price = (effect as any).price as number | undefined;
-      if (price === undefined) {
-        dlog("EXECUTE_SELL_TRADE without price, skipping");
-        return;
-      }
+case "EXECUTE_SELL_TRADE": {
+  const price = (effect as any).price as number | undefined;
+  if (price === undefined) {
+    dlog("EXECUTE_SELL_TRADE without price, skipping");
+    return;
+  }
 
-      const { qty } = computeQty(symbol, price);
+  // Get current open paper position (we saved qty on BUY)
+  const pos = getPaperPosition(symbol);
 
-      dlog("EXECUTE_SELL_TRADE -> paper + livesim", {
-        symbol,
-        price,
-        qty,
-      });
+  if (!pos || pos.qty <= 0) {
+    dlog("EXECUTE_SELL_TRADE but no OPEN paper position for", symbol, " – skipping");
+    // optionally: closeLiveSim(symbol); if you want to force-close sim even if paper missing
+    return;
+  }
 
-      // 1) Close / reduce paper position and record realized PnL
-      applyPaperTrade({
-        symbol,
-        side: "SELL",
-        qty,
-        price,
-      });
+  const qty = pos.qty; // close full position; change if you want partial exits
 
-      // 2) Close livesim position for this symbol
-      closeLiveSim(symbol);
+  dlog("EXECUTE_SELL_TRADE -> paper + livesim (closing full)", {
+    symbol,
+    price,
+    qty,
+  });
 
-      return;
-    }
+  // 1) Paper: realize PnL & remove/scale position
+  applyPaperTrade({
+    symbol,
+    side: "SELL",
+    qty,
+    price,
+  });
+
+  // 2) Live sim: close the live position
+  closeLiveSim(symbol);
+
+  return;
+}
+
 
     default:
       dlog("No side effects defined for effect type", effect.type);

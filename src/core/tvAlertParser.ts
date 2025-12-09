@@ -5,12 +5,14 @@ export function parseTvAlert(body: string): TvSignal | null {
   if (!body || typeof body !== "string") return null;
 
   const text = body.trim();
-
+  let side: "BUY" | "SELL" = "BUY";
   let intent: Intent | null = null;
   if (text.includes("Accepted Entry")) {
     intent = "ENTRY";
+    side = "BUY";
   } else if (text.includes("Accepted Exit")) {
     intent = "EXIT";
+    side = "SELL";
   } else {
     return null;
   }
@@ -26,7 +28,7 @@ export function parseTvAlert(body: string): TvSignal | null {
   const symbol = symMatch[1];
 
   // for now, side is always BUY on these alerts (you can extend later)
-  const side: "BUY" | "SELL" = "BUY";
+ 
 
   return { symbol, side, intent, stopPx };
 }
