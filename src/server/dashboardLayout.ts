@@ -342,61 +342,73 @@ export function dashboardHtml(defaultSection: string = "main"): string {
     }
 
     function renderPaperDebug(debug) {
-      const el = document.getElementById('paper-debug');
-      if (!debug) {
-        el.innerHTML = '<div class="row"><div>No data</div></div>';
-        return;
-      }
-      if (Array.isArray(debug)) {
-        const entries = debug.filter(e => e && e.symbol);
-        if (entries.length === 0) {
-          el.innerHTML = '<div class="row"><div>No data</div></div>';
-          return;
-        }
-        el.innerHTML = entries.map(entry => {
-          const st = entry.state || entry;
-          const blockedDisplay = st.blockedMinute
-            ? formatBlockedMinuteIST(st.blockedMinute) + " (key " + st.blockedMinute + ")"
-            : "-";
-          return (
-            '<div class="row mono" style="flex-direction:column; align-items:flex-start;">' +
-              '<div><strong>'+entry.symbol+'</strong></div>' +
-              '<div>pos: '+(st.pos ?? "-")+'</div>' +
-              '<div>buyThreshold: '+(st.buyThreshold ?? "-")+'</div>' +
-              '<div>sellThreshold: '+(st.sellThreshold ?? "-")+'</div>' +
-              '<div>checkThreshold: '+(st.checkThreshold ?? "-")+'</div>' +
-              '<div>lastBuyThreshold: '+(st.lastBuyThreshold ?? "-")+'</div>' +
-              '<div>sellCountAfterLastBuy: '+(st.sellCountAfterLastBuy ?? 0)+'</div>' +
-              '<div>blockedMinute: '+ blockedDisplay +'</div>' +
-            '</div>'
-          );
-        }).join('');
-        return;
-      }
-      const symbols = Object.keys(debug).filter(sym => !!sym && debug[sym]);
-      if (symbols.length === 0) {
-        el.innerHTML = '<div class="row"><div>No data</div></div>';
-        return;
-      }
-      el.innerHTML = symbols.map(sym => {
-        const st = debug[sym];
-        const blockedDisplay = st.blockedMinute
-          ? formatBlockedMinuteIST(st.blockedMinute) + " (key " + st.blockedMinute + ")"
-          : "-";
-        return (
-          '<div class="row mono" style="flex-direction:column; align-items:flex-start;">' +
-            '<div><strong>'+sym+'</strong></div>' +
-            '<div>pos: '+(st.pos ?? "-")+'</div>' +
-            '<div>buyThreshold: '+(st.buyThreshold ?? "-")+'</div>' +
-            '<div>sellThreshold: '+(st.sellThreshold ?? "-")+'</div>' +
-            '<div>checkThreshold: '+(st.checkThreshold ?? "-")+'</div>' +
-            '<div>lastBuyThreshold: '+(st.lastBuyThreshold ?? "-")+'</div>' +
-            '<div>sellCountAfterLastBuy: '+(st.sellCountAfterLastBuy ?? 0)+'</div>' +
-            '<div>blockedMinute: '+ blockedDisplay +'</div>' +
-          '</div>'
-        );
-      }).join('');
+  const el = document.getElementById('paper-debug');
+  if (!el) return;
+
+  if (!debug) {
+    el.innerHTML = '<div class="row"><div>No data</div></div>';
+    return;
+  }
+
+  // Helper to render one row (one symbol)
+  function renderRow(symbol, st, ltp, specialCondition) {
+    var blockedDisplay = st && st.blockedMinute
+      ? formatBlockedMinuteIST(st.blockedMinute) + ' (key ' + st.blockedMinute + ')'
+      : '-';
+
+    var pos = st && st.pos != null ? st.pos : '-';
+    var checkThr = st && st.checkThreshold != null ? st.checkThreshold : '-';
+    var buyThr = st && st.buyThreshold != null ? st.buyThreshold : '-';
+    var sellThr = st && st.sellThreshold != null ? st.sellThreshold : '-';
+    var ltpDisplay = (ltp !== undefined && ltp !== null) ? ltp : '-';
+    var scBadge = specialCondition ? ' <span class="badge-sc">SC</span>' : '';
+
+    return (
+      '<div class="row mono">' +
+        '<div style="flex:1;">' + symbol + '</div>' +
+        '<div style="width:80px;">' + pos + '</div>' +
+        '<div style="width:90px;">' + ltpDisplay + '</div>' +
+        '<div style="width:110px;">' + checkThr + '</div>' +
+        '<div style="width:110px;">' + buyThr + '</div>' +
+        '<div style="width:110px;">' + sellThr + '</div>' +
+        '<div style="flex:1;">' + blockedDisplay + scBadge + '</div>' +
+      '</div>'
+    );
+  }
+
+  // CASE 1: Array form (what you actually have)
+  if (Array.isArray(debug)) {
+    var entries = debug.filter(function(e) { return e && e.symbol; });
+    if (entries.length === 0) {
+      el.innerHTML = '<div class="row"><div>No data</div></div>';
+      return;
     }
+
+    el.innerHTML = entries.map(function(entry) {
+      var st = entry.state || {};
+      var ltp = entry.ltp;
+      var specialCondition = !!entry.specialCondition;
+      return renderRow(entry.symbol, st, ltp, specialCondition);
+    }).join('');
+    return;
+  }
+
+  // CASE 2: Object map fallback: { SYMBOL: stateObject }
+  var symbols = Object.keys(debug).filter(function(sym) {
+    return !!sym && debug[sym];
+  });
+
+  if (symbols.length === 0) {
+    el.innerHTML = '<div class="row"><div>No data</div></div>';
+    return;
+  }
+
+  el.innerHTML = symbols.map(function(sym) {
+    var st = debug[sym] || {};
+    // no per-symbol ltp info here, so pass null
+    return renderRow(sym, st, null, false);
+  }).join('');
+}
 
     function renderLiveSimDebug(livePositions, liveHistory) {
       const el = document.getElementById('livesim-debug');

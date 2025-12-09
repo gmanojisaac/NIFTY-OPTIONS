@@ -40,18 +40,19 @@
 
 //run the whole test harness
 import "./server/tvWebhookTest";  // starts server + ticker
-import "./server/dashboard";      // attaches dashboard routes
+//import "./server/dashboard";      // attaches dashboard routes
 import "./server/manualPrices";   // optional
 import "./ticker/kiteTickerLive";
-import "./server/dashboardMain";
-import "./server/dashboardCurrent";
-import "./server/dashboardLtp";
-import "./server/dashboardPaperPositions";
-import "./server/dashboardSessionPnl";
-import "./server/dashboardLiveSimPositions";
-import "./server/dashboardPaperDebug";
-import "./server/dashboardLiveSimDebug";
-import "./server/dashboardAfterMarket";
+
+ import "./server/dashboardMain";
+// import "./server/dashboardCurrent";
+// import "./server/dashboardLtp";
+// import "./server/dashboardPaperPositions";
+// import "./server/dashboardSessionPnl";
+// import "./server/dashboardLiveSimPositions";
+//import "./server/dashboardPaperDebug";
+// import "./server/dashboardLiveSimDebug";
+// import "./server/dashboardAfterMarket";
 import { startManualPriceServer } from "./server/manualPrices";
 //import { initLTP } from "./instruments/initLTP";
 

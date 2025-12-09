@@ -38,6 +38,7 @@ app.get("/dashboard/state", (_req, res) => {
   const paperTrades = getPaperTradeHistory();
   const signals = getSignalHistory();
 
+  console.log(paperDebug);
   res.json({
     pnl,
     pnlRealized: realized,
