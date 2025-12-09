@@ -5,7 +5,7 @@ import { handlePaperClose } from "./paper-close";
 import { PaperDecision } from "./paper-types";
 import { recordPnL } from "../pnl/pnl-session";
 
-const DEBUG = true;
+const DEBUG = false;
 const paperPos: Position[] = [];
 type PaperSide = "BUY" | "SELL";
 

@@ -40,6 +40,9 @@ export function getPaperState(symbol: string): PaperState {
  * Overwrite the stored state for a symbol.
  */
 export function setPaperState(symbol: string, state: PaperState): void {
+    if (!symbol || typeof symbol !== "string") {
+    console.log("[PAPER_STATE_STORE][WARN] Invalid symbol passed to setPaperState:", symbol);
+  }
   dlog("setPaperState for", symbol, "=", state);
   paperStates[symbol] = state;
 }
@@ -74,4 +77,8 @@ export function getPaperDebugState(): PaperDebugRow[] {
   });
   dlog("getPaperDebugState rows:", rows);
   return rows;
+}
+
+export function hasPaperState(symbol: string): boolean {
+  return Object.prototype.hasOwnProperty.call(paperStates, symbol);
 }

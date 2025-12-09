@@ -8,7 +8,7 @@ import { Signal } from "../core/types";
 // ----------------------------
 // LOCAL DEBUG FLAG ONLY HERE
 // ----------------------------
-const DEBUG = true;
+const DEBUG = false;
 const dlog = (...args: any[]) => {
   if (DEBUG) console.log("[paperEffectExecutor]", ...args);
 };

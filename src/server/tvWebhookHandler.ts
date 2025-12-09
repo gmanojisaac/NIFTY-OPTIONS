@@ -9,7 +9,7 @@ import { recordSignal } from "../core/signalHistory";
 export const TV_WEBHOOK_PATH = "/tv";
 
 // ===== Per-file debug flag & helpers =====
-const DEBUG = true; // set to false to disable all debug logs in this file
+const DEBUG = false; // set to false to disable all debug logs in this file
 
 const PREFIX = "[tvWebhookHandler]";
 

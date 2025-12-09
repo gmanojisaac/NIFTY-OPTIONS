@@ -2,7 +2,7 @@
 import "dotenv/config";
 import { kc } from "../auth/kite";
 import { INSTRUMENTS } from "../instruments/sixInstruments";
-import { setPrice } from "../core/priceStore";
+import { setLivePrice } from "../core/priceStore";
 
 export async function initLTP() {
   const accessToken = process.env.KITE_ACCESS_TOKEN;
@@ -27,7 +27,7 @@ export async function initLTP() {
         return;
       }
       const ltp = data.last_price;
-      setPrice(i.symbol, ltp); // 👈 IMPORTANT: same key used by manual UI
+      setLivePrice(i.symbol, ltp); // 👈 IMPORTANT: same key used by manual UI
       console.log("[initLTP] Set", i.symbol, "=", ltp);
     });
 

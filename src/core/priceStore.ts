@@ -62,6 +62,8 @@ export function setLivePrice(symbol: string, price: number) {
   const e = ensure(symbol);
   e.live = price;
   refreshLatest(symbol);
+    // 🔥 CRITICAL: notify listeners (paper engine tick)
+  notifyPriceListeners(symbol, price);
 }
 
 export function setManualPrice(symbol: string, price: number) {

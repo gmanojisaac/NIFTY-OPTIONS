@@ -1,6 +1,7 @@
 //After 9 AM
 //https://kite.zerodha.com/connect/login?v=3&api_key=k8jfisczsz5bsbff 
 //npx ts-node ./src/auth/auth.ts
+//npx ts-node ./src/tools/resolveTokens.ts -- remember to save the zerodha symbols to get token id
 //import "./auth/auth";
 //import "./profile/profile";
 
@@ -41,10 +42,19 @@
 import "./server/tvWebhookTest";  // starts server + ticker
 import "./server/dashboard";      // attaches dashboard routes
 import "./server/manualPrices";   // optional
-
+import "./ticker/kiteTickerLive";
+import "./server/dashboardMain";
+import "./server/dashboardCurrent";
+import "./server/dashboardLtp";
+import "./server/dashboardPaperPositions";
+import "./server/dashboardSessionPnl";
+import "./server/dashboardLiveSimPositions";
+import "./server/dashboardPaperDebug";
+import "./server/dashboardLiveSimDebug";
+import "./server/dashboardAfterMarket";
 import { startManualPriceServer } from "./server/manualPrices";
-import { initLTP } from "./instruments/initLTP";
-import "./ticker/liveTicker";
+//import { initLTP } from "./instruments/initLTP";
+
 import { subscribePriceListener } from "./core/priceStore";
 import { handlePaperTick } from "./strategy/paperIntegration";
 
@@ -76,7 +86,7 @@ async function main() {
   log("NODE_ENV:", process.env.NODE_ENV || "undefined");
 
   log("Calling initLTP() to initialise LTP data");
-  initLTP();
+  //initLTP();
   log("initLTP() call finished (check initLTP logs for details)");
 
   const port = 4000;

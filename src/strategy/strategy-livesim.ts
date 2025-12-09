@@ -117,7 +117,7 @@ export function closeLiveSim(symbol: string) {
 
   if (h) h.exit = price;
 
-  console.log("[LIVESIM CLOSE]", symbol, "qty", pos.qty, "at", price);
+  //console.log("[LIVESIM CLOSE]", symbol, "qty", pos.qty, "at", price);
 
   if (DEBUG) {
     console.log("[LIVESIM][DEBUG] Updated exit for history =", h);

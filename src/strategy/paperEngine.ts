@@ -9,7 +9,7 @@ import {
 } from "./paperTypes";
 
 // ---- Debug flag & helper ----
-const DEBUG = true; // ← switch true/false as needed
+const DEBUG = false; // ← switch true/false as needed
 
 function dbg(...args: any[]) {
   if (DEBUG) console.log("[paperEngine]", ...args);

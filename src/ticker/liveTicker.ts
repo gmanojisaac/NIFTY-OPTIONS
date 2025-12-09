@@ -1,85 +1,103 @@
 // src/ticker/liveTicker.ts
-import "dotenv/config";
-import { KiteTicker, Tick } from "kiteconnect";
 import { INSTRUMENTS } from "../instruments/sixInstruments";
-import { setLivePrice } from "../core/priceStore";
+import { setLivePrice } from "../core/priceStore";  // whatever your setter is called
+// import KiteTicker or your broker WS here
 
-const apiKey = process.env.KITE_API_KEY;
-const accessToken = process.env.KITE_ACCESS_TOKEN;
+const DEBUG = false;
+const tlog = (...args: any[]) => {
+  if (DEBUG) console.log("[liveTicker]", ...args);
+};
 
-if (!apiKey || !accessToken) {
-  //console.log("[TICKER] ❌ Missing KITE_API_KEY or KITE_ACCESS_TOKEN, live ticker disabled");
-} else {
-  const ticker = new KiteTicker({
-    api_key: apiKey,
-    access_token: accessToken
-  });
+// 1) Prove this file is actually executing
+tlog("liveTicker module loaded");
 
-  const tokenToSymbol: Record<number, string> = {};
-  const tokens: number[] = [];
+// Helper: map token → instrument
+const tokenToInstrument: Record<string, { symbol: string; tradingsymbol: string }> = {};
+INSTRUMENTS.forEach(i => {
+  if (i.token !== undefined && i.token !== null) {
+    tokenToInstrument[String(i.token)] = { symbol: i.symbol, tradingsymbol: i.tradingsymbol };
+  }
+});
 
-  INSTRUMENTS.forEach((i: any) => {
-    // ✅ use your `token` field, but fall back to `instrument_token` if present
-    const token: number =
-      i.token ?? i.instrument_token;
+tlog("tokenToInstrument map initialised with", Object.keys(tokenToInstrument).length, "entries");
 
-    if (!token) {
-      //console.log("[TICKER] ⚠ instrument has no token:", i);
-      return;
-    }
+// 2) Create and connect the ticker
 
-    tokenToSymbol[token] = i.symbol;
-    tokens.push(token);
-  });
+function startLiveTicker() {
+  tlog("Starting live ticker…");
 
-  //console.log("[TICKER] Will subscribe to tokens:", tokens);
+  // This part depends on your actual client (KiteTicker etc.)
+  // Example for KiteTicker style:
+  //
+  // const ticker = new KiteTicker({
+  //   api_key: process.env.KITE_API_KEY!,
+  //   access_token: process.env.KITE_ACCESS_TOKEN!,
+  // });
 
-  ticker.autoReconnect(true, 10, 5);
+  // ---- Replace this with your real ticker instance ----
+  const ticker: any = createYourBrokerTickerSomehow();
+  // -----------------------------------------------------
 
   ticker.on("connect", () => {
-    //console.log("[TICKER] ✅ Connected. Subscribing to", tokens);
+    tlog("Ticker connected, subscribing to tokens…");
+
+    const tokens = Object.keys(tokenToInstrument).map(t => Number(t));
+    tlog("Subscribing tokens:", tokens);
+
     ticker.subscribe(tokens);
-    ticker.setMode(ticker.modeLTP, tokens);
+    ticker.setMode(ticker.modeFull, tokens); // or modeLTP, depending on your needs
   });
 
-  ticker.on("ticks", (ticks: Tick[]) => {
-    //console.log("[TICKER] ticks received:", ticks.length);
+  ticker.on("ticks", (ticks: any[]) => {
+    tlog("ticks event received, count =", ticks.length);
 
-    ticks.forEach(t => {
-      const token = t.instrument_token;
-      const symbol = tokenToSymbol[token];
-
-      if (!symbol) {
-        //console.log("[TICKER] ⚠ No symbol mapping for token", token);
+    ticks.forEach((tick) => {
+      const token = String(tick.instrument_token ?? tick.token);
+      const instrument = tokenToInstrument[token];
+      if (!instrument) {
+        tlog("No instrument mapping for token", token, "tick:", tick);
         return;
       }
 
-      if (typeof t.last_price !== "number") {
-        //console.log("[TICKER] ⚠ Invalid last_price for", symbol, t);
+      // Grab a price field depending on your mode
+      const price =
+        tick.last_price ??
+        tick.last_traded_price ??
+        tick.ltp ??
+        null;
+
+      if (price == null) {
+        tlog("Tick without price for token", token, "instrument", instrument, "raw tick:", tick);
         return;
       }
 
-      setLivePrice(symbol, t.last_price);
-      //console.log(`[TICKER] ✔ UPDATE ${symbol} (${token}) -> ${t.last_price}`);
+      tlog("Updating priceStore:", {
+        token,
+        symbol: instrument.symbol,
+        tradingsymbol: instrument.tradingsymbol,
+        price,
+      });
+
+      // 3) This is the critical call: write into priceStore
+      setPrice(instrument.symbol, price);
     });
   });
 
-  ticker.on("error", (err) => {
-    //console.error("[TICKER] ❌ error:", err);
+  ticker.on("error", (err: any) => {
+    console.error("[liveTicker] ticker error:", err);
   });
 
   ticker.on("close", () => {
-    //console.log("[TICKER] ⚠ closed");
+    tlog("Ticker connection closed");
   });
 
-  ticker.on("noreconnect", () => {
-    //console.log("[TICKER] ⚠ will not reconnect");
-  });
+  tlog("Connecting ticker now…");
+  ticker.connect();
+}
 
-  ticker.on("reconnect", (reconnectCount, delay) => {
-    //console.log("[TICKER] 🔁 reconnect attempt", reconnectCount, "in", delay, "ms");
-  });
-
-  console.log("[TICKER] Calling connect()...");
-  //ticker.connect();
+// Kick it off immediately on import
+try {
+  startLiveTicker();
+} catch (err) {
+  console.error("[liveTicker] Failed to start ticker:", err);
 }

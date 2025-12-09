@@ -1,11 +1,11 @@
 // src/strategy/paperIntegrationCore.ts
 import { stepPaper } from "./paperEngine";
 import { PaperState, Event, Effect } from "./paperTypes";
-import { getPaperState, setPaperState } from "./paperStateStore";
+import { getPaperState, setPaperState, hasPaperState } from "./paperStateStore";
 import { executePaperEffect } from "./paperEffectExecutor";
 import { getPrice } from "../core/priceStore";
 
-const DEBUG_PAPER_INTEGRATION = true;
+const DEBUG_PAPER_INTEGRATION = false;
 const dlog = (...args: any[]) => {
   if (DEBUG_PAPER_INTEGRATION) console.log("[paperIntegration]", ...args);
 };
@@ -100,6 +100,12 @@ export function handlePaperTick(
 ): void {
   const ltp = getPrice(symbol);
   if (ltp === undefined) return;
+
+  // 👉 new guard: ignore ticks until we've seen at least one signal
+  if (!hasPaperState(symbol)) {
+    dlog("TICK ignored for", symbol, "→ no paper state yet (no signal received)");
+    return;
+  }
 
   const prevState: PaperState = getPaperState(symbol);
 
