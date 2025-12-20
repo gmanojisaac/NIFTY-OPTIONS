@@ -6,7 +6,7 @@
 //KITE_API_SECRET=
 //KITE_API_KEY=
 //KITE_ACCESS_TOKEN= is generated and saved in the .env file
-
+//npx ts-node ./src/auth/auth.ts
 
 //import "./ticker/ticker";
 //import "./ticker/testTicks"; 
